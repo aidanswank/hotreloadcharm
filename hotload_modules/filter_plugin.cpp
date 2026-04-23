@@ -1,17 +1,17 @@
-#include "plugin_interface.h"
+#include "module_interface.h"
 #include <cstring>
 #include <cmath>
 
 /**
- * Example Filter Plugin - Resonant low-pass filter using CRTP
+ * Example Filter Module - Resonant low-pass filter using CRTP
  * 
- * This plugin implements a simple resonant filter with two state variables (v0, v1).
+ * This module implements a simple resonant filter with two state variables (v0, v1).
  * The filter coefficients are controlled by KNOB_1 and KNOB_2.
  * 
  * Uses static polymorphism via CRTP - state is a member variable, no passing around!
  */
 
-class FilterPlugin : public PluginBase<FilterPlugin>
+class FilterModule : public ModuleBase<FilterModule>
 {
 public:
     struct FilterState
@@ -28,7 +28,7 @@ public:
         this->filter_states[1] = FilterState();
     }
     
-    void process_audio(float* outputs[], int num_channels, int num_samples, const PluginAudioContext* context)
+    void process_audio(float* outputs[], int num_channels, int num_samples, const ModuleAudioContext* context)
     {
         if (!context || num_channels < 1)
             return;
@@ -89,36 +89,36 @@ public:
 
 extern "C" {
 
-PluginState* plugin_create()
+ModuleState* module_create()
 {
-    FilterPlugin::instance().initialize();
-    return FilterPlugin::instance().get_state();
+    FilterModule::instance().initialize();
+    return FilterModule::instance().get_state();
 }
 
-void plugin_destroy(PluginState* state)
+void module_destroy(ModuleState* state)
 {
     // State is managed by the singleton, no need to delete
     // But we could reset state here if needed
-    FilterPlugin::instance().initialize();
+    FilterModule::instance().initialize();
 }
 
-void plugin_process_audio(PluginState* state,
+void module_process_audio(ModuleState* state,
                          float* outputs[],
                          int num_channels,
                          int num_samples,
-                         const PluginAudioContext* context)
+                         const ModuleAudioContext* context)
 {
-    FilterPlugin::instance().process_audio(outputs, num_channels, num_samples, context);
+    FilterModule::instance().process_audio(outputs, num_channels, num_samples, context);
 }
 
-const char* plugin_get_name()
+const char* module_get_name()
 {
-    return FilterPlugin::instance().get_name();
+    return FilterModule::instance().get_name();
 }
 
-const char* plugin_get_version()
+const char* module_get_version()
 {
-    return FilterPlugin::instance().get_version();
+    return FilterModule::instance().get_version();
 }
 
 } // extern "C"

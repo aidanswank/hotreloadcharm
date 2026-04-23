@@ -7,7 +7,7 @@
 
 typedef uint64_t UIId;
 
-// very generic names so had to wrap in namespace
+// had generic names so had to wrap in namespace
 // was conflicting with MacTypes
 namespace charm
 {

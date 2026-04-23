@@ -8,7 +8,7 @@ class CharmApp;
 
 struct UITheme
 {
-	Color button_color = {65,57,68,228};
+	Color button_color = {65,57,68,200};
     Color hot_color = {255,255,255,100};
     Color flash_color = {255,255,255,180};
     Color text_color = {255,255,255,255};
@@ -165,3 +165,16 @@ bool ui_text_box(charm::Rect rect, TextBoxState& state);
 void rc_text_input(RectCut layout, char* buffer, int* cursor_pos);
 
 bool ui_drag_button(charm::Rect &rect);
+
+struct CustomFunctionState
+{
+    std::vector<charm::Vec2> points;
+    // int num_grid_x = 4;
+    // int num_grid_y = 2;
+    charm::Vec2 num_grid_lines = {4, 2};
+    bool snap_to_grid = true;
+    float playhead_pos = 0.0f; // 0.0 to 1.0
+    float playhead_function_value = 0.0f; // value at playhead position, between 0 and 1 based on grid
+};
+
+WidgetComm ui_custom_function_widget(charm::Rect rect, CustomFunctionState* state);

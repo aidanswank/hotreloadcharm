@@ -2449,6 +2449,220 @@ bool ui_text_box(charm::Rect rect, TextBoxState& state) {
     }
 }
 
+// struct CustomFunctionState
+// {
+//     std::vector<charm::Vec2> points;
+// };
+
+WidgetComm ui_custom_function_widget(charm::Rect rect, CustomFunctionState* state)
+{
+    UICore& ui = *get_ui_state();
+
+    charm::Rect new_line = cut_top(&rect, 32);
+    // ui.draw_box(toggle_box, {255,0,255,255});
+    // float old_padding = theme.padding;
+    // theme.padding = 0;
+    rc_label(rectcut(&new_line, RectCut_Left), "Snap");
+    // theme.padding = old_padding;
+    charm::Rect toggle_box = cut_left(&new_line, 32);
+    ui_checkbox_rect(toggle_box, &state->snap_to_grid);
+
+    rc_label(rectcut(&new_line, RectCut_Left), "Playhead Pos: %f", state->playhead_pos);
+    rc_label(rectcut(&new_line, RectCut_Left), "Function Value: %f", state->playhead_function_value);
+    rc_label(rectcut(&new_line, RectCut_Left), "Num Points: %i", state->points.size());
+
+    WidgetComm main_widget = ui.build_widget(rect, WidgetFlag_Clickable | WidgetFlag_HotAnimation | WidgetFlag_TextInput);
+    // bool snap_to_grid = ui_checkbox(toggle_box, "Snap to grid", state->snap
+    
+    // ui.draw_rect(rect, theme.button_color);
+    ui.draw_box(rect, {255,0,255,255});
+
+    // int num_grid_x = 4;
+    // int num_grid_y = 2;
+    // draw grid lines
+    for(int i = 1; i < state->num_grid_lines.x; i++)
+    {
+        for(int j = 1; j < state->num_grid_lines.y; j++)
+        {
+            ui.draw_line(
+                {rect.x + i * rect.w / state->num_grid_lines.x, rect.y},
+                {rect.x + i * rect.w / state->num_grid_lines.x, rect.y + rect.h},
+                {100,100,100,50}
+            );
+            ui.draw_line(
+                {rect.x, rect.y + j * rect.h / state->num_grid_lines.y},
+                {rect.x + rect.w, rect.y + j * rect.h / state->num_grid_lines.y},
+                {100,100,100,50}
+            );
+        }
+    }
+    // charm::Vec2 mouse_pos = ui.mouse_pos;
+
+    // printf("HEY!\n");
+
+    
+    if(main_widget.hovering)
+    {
+        // ui.draw_rect(rect, theme.hot_color);
+        charm::Vec2 mouse_pos = ui.mouse_pos;
+        charm::Vec2 relative_pos = {0.0, 0.0};
+        relative_pos.x = ui.mouse_pos.x - rect.x;
+        relative_pos.y = ui.mouse_pos.y - rect.y;
+
+        // WidgetComm point_widget = ui.build_widget(rect, WidgetFlag_Clickable | WidgetFlag_HotAnimation);
+        ui.draw_box({mouse_pos.x-8, mouse_pos.y-8, 16, 16}, {255,0,255,255});
+
+        // printf("ui keymod state %i\n", ui.keyentered);
+        // printf("ui mouse right held %i\n", ui.right_mouse_down);
+        // printf("mouse pos %f %f\n", relative_pos.x, relative_pos.y);
+        // if(main_widget.keyentered)
+        // if ((ui.keymod & CHARM_KEYMOD_SUPER)) {
+        //     printf("holding super\n");
+        //     // ui.keyentered = 0; // consume the key event to prevent other processing
+        // }
+    }
+
+    for(int i = 0; i < state->points.size(); i++)
+    {
+        charm::Vec2 normalized_point = state->points[i];
+        charm::Vec2 projected_point = {
+            rect.x + normalized_point.x * rect.w,
+            rect.y + normalized_point.y * rect.h
+        };
+
+        
+        charm::Rect point_hitbox = {projected_point.x-8, projected_point.y-8, 16, 16};
+        WidgetComm point_widget = ui.build_widget(point_hitbox, WidgetFlag_Clickable | WidgetFlag_HotAnimation | WidgetFlag_Dragging);
+
+        if(point_widget.hovering)
+        {
+            ui.draw_rect(point_hitbox, {255,0,255,100});
+        } else {
+            ui.draw_rect(point_hitbox, {255,255,255,100});
+        }
+
+        if(point_widget.dragging)
+        {
+            float normalized_drag_delta_frame_x = point_widget.drag_delta_frame.x / rect.w;
+            float normalized_drag_delta_frame_y = point_widget.drag_delta_frame.y / rect.h;
+            state->points[i].x += normalized_drag_delta_frame_x;
+            state->points[i].y += normalized_drag_delta_frame_y;
+            // point_widget.drag_released
+        }
+
+        if(point_widget.released)
+        {
+            printf("end of drag\n");
+            // snap to grid if enabled
+            if(state->snap_to_grid)
+            {
+                charm::Vec2 old_point = state->points[i];
+                charm::Vec2 snapped_point = old_point;
+                float grid_size_x = 1.0f / state->num_grid_lines.x;
+                float grid_size_y = 1.0f / state->num_grid_lines.y;
+                snapped_point.x = roundf(old_point.x / grid_size_x) * grid_size_x;
+                snapped_point.y = roundf(old_point.y / grid_size_y) * grid_size_y;
+                state->points[i] = snapped_point;
+            }
+
+
+        }
+        
+        // draw line to next point
+        if(i < state->points.size() - 1)
+        {
+            charm::Vec2 next_normalized_point = state->points[i + 1];
+            charm::Vec2 next_projected_point = {
+                rect.x + next_normalized_point.x * rect.w,
+                rect.y + next_normalized_point.y * rect.h
+            };
+             ui.draw_line(
+                {projected_point.x, projected_point.y},
+                {next_projected_point.x, next_projected_point.y},
+                {255,255,255,255}
+            );
+        }
+    }
+
+    // calculate playhead value
+    if(state->points.size() >= 2)
+    {
+        // find the two points surrounding the playhead
+        charm::Vec2 left_point  = {0.0f, 0.0f};
+        charm::Vec2 right_point = {1.0f, 0.0f};
+
+        for(int i = 0; i < state->points.size(); i++)
+        {
+            if(state->points[i].x <= state->playhead_pos)
+            {
+                left_point = state->points[i];
+            }
+            else
+            {
+                right_point = state->points[i];
+                break;
+            }
+        }
+
+        // interpolate between the two surrounding points
+        float t = 0.0f;
+        float dx = right_point.x - left_point.x;
+        if(dx > 0.0001f) // avoid divide by zero
+        {
+            t = (state->playhead_pos - left_point.x) / dx;
+        }
+
+        state->playhead_function_value = lerp(left_point.y, right_point.y, t);
+    }
+    else if(state->points.size() == 1)
+    {
+        state->playhead_function_value = state->points[0].y;
+    }
+    else
+    {
+        state->playhead_function_value = 0.0f;
+    }
+
+    if(main_widget.clicked)
+    {
+        charm::Vec2 mouse_pos = ui.mouse_pos;
+        charm::Vec2 relative_pos = {0.0, 0.0};
+        relative_pos.x = ui.mouse_pos.x - rect.x;
+        relative_pos.y = ui.mouse_pos.y - rect.y;
+        charm::Vec2 normalized_pos = {0.0, 0.0}; // between 0 and 1
+        normalized_pos.x = relative_pos.x / rect.w;
+        normalized_pos.y = relative_pos.y / rect.h;
+        printf("mouse pos %f %f\n", relative_pos.x, relative_pos.y);
+        printf("normalized pos %f %f\n", normalized_pos.x, normalized_pos.y);
+        // printf("ui mouse right held %i\n", ui.right_mouse_down);
+        // printf("snap to grid %i\n", state->snap_to_grid);
+        if(state->snap_to_grid) // snap to grid
+        {
+            printf("snapping to grid\n");
+            float grid_size_x = rect.w / state->num_grid_lines.x;
+            float grid_size_y = rect.h / state->num_grid_lines.y;
+            relative_pos.x = roundf(relative_pos.x / grid_size_x) * grid_size_x;
+            relative_pos.y = roundf(relative_pos.y / grid_size_y) * grid_size_y;
+            normalized_pos.x = relative_pos.x / rect.w;
+            normalized_pos.y = relative_pos.y / rect.h;
+             printf("snapped relative pos %f %f\n", relative_pos.x, relative_pos.y);
+             printf("snapped normalized pos %f %f\n", normalized_pos.x, normalized_pos.y);
+        }
+        state->points.push_back(normalized_pos);
+    }
+
+    // draw playhead line
+    float playhead_x = rect.x + state->playhead_pos * rect.w;
+    ui.draw_line(
+        {playhead_x, rect.y},
+        {playhead_x, rect.y + rect.h},
+        {255,0,0,255}
+    );
+
+    //  calculate playhead value 
+
+    return main_widget;
+}
 
 // // WidgetComm ui_text_input(charm::Rect rect, char* buffer, int* cursor_pos, WidgetFlags extra_flags = 0)
 // // {

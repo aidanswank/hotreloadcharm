@@ -1,69 +1,69 @@
-# Plugin Modules Directory
+# Hotload Modules Directory
 
-This directory contains hot-reloadable DSP plugin implementations using **static polymorphism** via CRTP (Curiously Recurring Template Pattern). Each plugin is a class that inherits from `PluginBase<YourPlugin>`, where state variables are member variables instead of being passed around as parameters.
+This directory contains hot-reloadable DSP module implementations using **static polymorphism** via CRTP (Curiously Recurring Template Pattern). Each module is a class that inherits from `ModuleBase<YourModule>`, where state variables are member variables instead of being passed around as parameters.
 
 ## Architecture
 
 The new system uses:
-- **CRTP Base Class**: `PluginBase<Derived>` provides the interface without virtual functions
-- **Singleton Pattern**: Each plugin has a static instance accessible via `YourPlugin::instance()`
-- **Member State**: Plugin state variables are class members (`this->variable`) instead of struct fields
+- **CRTP Base Class**: `ModuleBase<Derived>` provides the interface without virtual functions
+- **Singleton Pattern**: Each module has a static instance accessible via `YourModule::instance()`
+- **Member State**: Module state variables are class members (`this->variable`) instead of struct fields
 - **No Virtual Polymorphism**: Static dispatch at compile time for better performance
 
-## Current Plugins
+## Current Modules
 
 ### `filter_plugin.cpp`
-- **Class**: `FilterPlugin : public PluginBase<FilterPlugin>`
-- **State Members**: `v0_left`, `v1_left`, `v0_right`, `v1_right` (no more passing around!)
+- **Class**: `FilterModule : public ModuleBase<FilterModule>`
+- **State Members**: `filter_states[2]` array with `v0`, `v1` per channel
 - **Parameters**:
   - `KNOB_1`: Cutoff frequency (0.0 = low, 1.0 = high)
   - `KNOB_2`: Resonance (0.0 = no resonance, 1.0 = high Q)
 - **Formula**: `this->v0 = (1-r*c)*this->v0 - c*this->v1 + c*input; this->v1 = (1-r*c)*this->v1 + c*this->v0; output = this->v1`
 
 ### `gain_plugin.cpp`
-- **Class**: `GainPlugin : public PluginBase<GainPlugin>`
+- **Class**: `GainModule : public ModuleBase<GainModule>`
 - **State Members**: None needed (simple multiplier)
 - **Parameters**:
   - `KNOB_1`: Gain (0.0 = silence, 1.0 = unity, 2.0 = 2x gain)
 - **Formula**: `output = input * gain`
 
-## How to Add a New Plugin
+## How to Add a New Module
 
-1. Create a new `.cpp` file in this directory (e.g., `my_plugin.cpp`)
-2. Define your plugin class inheriting from `PluginBase`:
+1. Create a new `.cpp` file in this directory (e.g., `my_module.cpp`)
+2. Define your module class inheriting from `ModuleBase`:
    ```cpp
-   #include "plugin_interface.h"
+   #include "module_interface.h"
    
-   class MyPlugin : public PluginBase<MyPlugin>
+   class MyModule : public ModuleBase<MyModule>
    {
    public:
        // Your state variables as member variables
        float my_state_variable = 0.0f;
        
-       // Implement the plugin methods
-       void process_audio(float* outputs[], int num_channels, int num_samples, const PluginAudioContext* context)
+       // Implement the module methods
+       void process_audio(float* outputs[], int num_channels, int num_samples, const ModuleAudioContext* context)
        {
            // Use this->my_state_variable directly!
            // No more passing state pointers around
        }
        
-       const char* get_name() const { return "My Plugin"; }
+       const char* get_name() const { return "My Module"; }
        const char* get_version() const { return "1.0.0"; }
    };
    
    // Export the extern "C" interface
    extern "C" {
-   PluginState* plugin_create() { return MyPlugin::instance().get_state(); }
-   void plugin_destroy(PluginState* state) { /* singleton handles it */ }
-   void plugin_process_audio(PluginState* state, float* outputs[], int num_channels, int num_samples, const PluginAudioContext* context) {
-       MyPlugin::instance().process_audio(outputs, num_channels, num_samples, context);
+   ModuleState* module_create() { return MyModule::instance().get_state(); }
+   void module_destroy(ModuleState* state) { /* singleton handles it */ }
+   void module_process_audio(ModuleState* state, float* outputs[], int num_channels, int num_samples, const ModuleAudioContext* context) {
+       MyModule::instance().process_audio(outputs, num_channels, num_samples, context);
    }
-   const char* plugin_get_name() { return MyPlugin::instance().get_name(); }
-   const char* plugin_get_version() { return MyPlugin::instance().get_version(); }
+   const char* module_get_name() { return MyModule::instance().get_name(); }
+   const char* module_get_version() { return MyModule::instance().get_version(); }
    }
    ```
 
-3. Rebuild the project - your plugin will be automatically discovered and built!
+3. Rebuild the project - your module will be automatically discovered and built!
 
 ## Benefits of This Approach
 
