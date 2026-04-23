@@ -2,6 +2,7 @@
 #pragma once
 
 #include "ui.h"
+#include "plugin_loader.h"
 
 #include <nanovg.h>
 
@@ -51,6 +52,12 @@ public:
 
     void prepare_to_play(double sampleRate, int blockSize);
     void process_audio(float** outputs, int num_channels, int num_samples);
+    
+    // Plugin system
+    PluginLoader& get_plugin_loader() { return plugin_loader; }
+    bool load_plugin(const std::string& dylib_path);
+    bool reload_plugin();
+    std::vector<std::string> scan_available_plugins();
 
     // Moog VCF – one state struct per channel
     struct MoogFilterState {
@@ -183,5 +190,6 @@ public:
 private:
     juce::AudioProcessorValueTreeState* host_parameters = nullptr;
     std::unordered_map<std::string, float> smoothed_parameter_values;
+    PluginLoader plugin_loader;
 
 };

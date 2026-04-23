@@ -144,12 +144,41 @@ if("${CMAKE_SYSTEM}" MATCHES "Linux")
     )
 endif()
 
+# Build plugin dylibs from plugin_modules directory
+file(GLOB PLUGIN_SOURCES plugin_modules/*.cpp)
+set(PLUGIN_TARGETS)
+foreach(PLUGIN_SRC ${PLUGIN_SOURCES})
+    get_filename_component(PLUGIN_NAME ${PLUGIN_SRC} NAME_WE)
+    add_library(${PLUGIN_NAME} SHARED ${PLUGIN_SRC})
+    
+    target_include_directories(${PLUGIN_NAME}
+        PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/source
+    )
+    
+    # Set output directory for plugin
+    set_target_properties(${PLUGIN_NAME} PROPERTIES
+        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/plugins"
+        PREFIX ""
+        SUFFIX ".dylib"
+    )
+    
+    if(APPLE)
+        set_target_properties(${PLUGIN_NAME} PROPERTIES
+            SUFFIX ".dylib"
+        )
+    endif()
+    
+    list(APPEND PLUGIN_TARGETS ${PLUGIN_NAME})
+endforeach()
+
 # Custom run target to launch the standalone app after building
 if(APPLE)
     add_custom_target(run
         COMMAND open ${CMAKE_BINARY_DIR}/${PROJECT_NAME}_artefacts/Standalone/${PROJECT_NAME}.app
-        DEPENDS ${PROJECT_NAME}_Standalone
+        DEPENDS ${PROJECT_NAME}_Standalone ${PLUGIN_TARGETS}
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         COMMENT "Launching ${PROJECT_NAME} standalone app..."
     )
 endif()
+

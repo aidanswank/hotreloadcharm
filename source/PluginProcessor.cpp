@@ -183,8 +183,8 @@ CharmAudioProcessor::CharmAudioProcessor()
 {
     app = std::make_unique<CharmApp>();  // <-- must happen first
     app->attach_host_parameters(parameters);
-    app->main_gain = app->get_host_parameter_value(CharmApp::mainGainParamID, 1.0f);
-    app->phase_invert = app->get_host_parameter_value(CharmApp::phaseInvertParamID, 1.0f);
+    app->main_gain = app->get_host_parameter_value(CharmApp::knob_1_param_id, 1.0f);
+    app->phase_invert = app->get_host_parameter_value(CharmApp::knob_2_param_id, 1.0f);
 
     saveOrReadTestFile(app.get());
 }

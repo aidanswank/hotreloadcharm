@@ -2,6 +2,9 @@
 #include "CharmApp.h"
 
 #include <juce_audio_processors/juce_audio_processors.h>
+#include <dirent.h>
+#include <vector>
+#include <string>
 
 namespace
 {
@@ -18,7 +21,16 @@ juce::RangedAudioParameter* get_host_parameter(juce::AudioProcessorValueTreeStat
 CharmApp::CharmApp()
 // :
 {
-
+    // Plugin will be loaded dynamically from UI
+    // if(this->plugin_loader.load("/Users/aidan/dev/cpp/juce_cmake/hotreloadcharm/build/plugins/filter_plugin.dylib"))
+    // {
+    //     this->plugin_loader.create_instance();
+    //     printf("✓ Loaded plugin: %s v%s\n", this->plugin_loader.get_name(), this->plugin_loader.get_version());
+    // }
+    // else
+    // {
+    //     printf("Failed to load plugin: %s\n", this->plugin_loader.get_error().c_str());
+    // }
 }
 
 CharmApp::~CharmApp()
@@ -252,24 +264,81 @@ float CharmApp::moog_filter(float input, float cutoff, float res, float fold, fl
 
 void CharmApp::process_audio(float* outputs[], int num_channels, int num_samples)
 {
-
-    for (int i = 0; i < num_samples; ++i)
+    if (this->plugin_loader.is_loaded())
     {
-        // pass into HotReloadDsp state struct here
-        const float knob_1_value = get_host_parameter_value(knob_1_param_id);
-        const float knob_2_value = get_host_parameter_value(knob_2_param_id);
-        const float knob_3_value = get_host_parameter_value(knob_3_param_id);
-        const float knob_4_value = get_host_parameter_value(knob_4_param_id);
-
-        float left  = outputs[0][i];
-        float right = outputs[1][i];
-    
-        // call hotreload_process_audio() here
+        // Build context with current parameter values
+        PluginAudioContext context;
+        context.knob_1 = get_host_parameter_value(knob_1_param_id, 0.5f);
+        context.knob_2 = get_host_parameter_value(knob_2_param_id, 0.5f);
+        context.knob_3 = get_host_parameter_value(knob_3_param_id, 0.5f);
+        context.knob_4 = get_host_parameter_value(knob_4_param_id, 0.5f);
+        context.num_channels = num_channels;
+        context.sample_rate = static_cast<int>(sample_rate);
         
-        outputs[0][i] = left;
-        outputs[1][i] = right;
+        // Process audio through plugin
+        this->plugin_loader.process_audio(outputs, num_channels, num_samples, &context);
     }
+}
 
+bool CharmApp::load_plugin(const std::string& dylib_path)
+{
+    if (!this->plugin_loader.load(dylib_path))
+    {
+        printf("Failed to load plugin: %s\n", this->plugin_loader.get_error().c_str());
+        return false;
+    }
+    
+    if (!this->plugin_loader.create_instance())
+    {
+        printf("Failed to create plugin instance\n");
+        return false;
+    }
+    
+    printf("Loaded plugin: %s v%s\n", this->plugin_loader.get_name(), this->plugin_loader.get_version());
+    return true;
+}
+
+bool CharmApp::reload_plugin()
+{
+    if (!this->plugin_loader.reload())
+    {
+        printf("Failed to reload plugin: %s\n", this->plugin_loader.get_error().c_str());
+        return false;
+    }
+    
+    if (!this->plugin_loader.create_instance())
+    {
+        printf("Failed to create plugin instance after reload\n");
+        return false;
+    }
+    
+    printf("Reloaded plugin: %s v%s\n", this->plugin_loader.get_name(), this->plugin_loader.get_version());
+    return true;
+}
+
+std::vector<std::string> CharmApp::scan_available_plugins()
+{
+    std::vector<std::string> plugins;
+    
+    // Scan the plugins directory
+    std::string plugins_dir = "/Users/aidan/dev/cpp/juce_cmake/hotreloadcharm/build/plugins";
+    
+    DIR* dir = opendir(plugins_dir.c_str());
+    if (dir) {
+        struct dirent* entry;
+        while ((entry = readdir(dir)) != nullptr) {
+            std::string filename = entry->d_name;
+            // Look for .dylib files
+            if (filename.size() > 6 && filename.substr(filename.size() - 6) == ".dylib") {
+                // Remove .dylib extension for display
+                std::string plugin_name = filename.substr(0, filename.size() - 6);
+                plugins.push_back(plugin_name);
+            }
+        }
+        closedir(dir);
+    }
+    
+    return plugins;
 }
 
 #include <unordered_set>
@@ -284,8 +353,8 @@ void ui_draw_toolbar(charm::Rect& window_rect, CharmApp *app)
     ui.draw_rect(toolbar, get_ui_theme()->panel_color);
     // ui.draw_box(win)
 
-    if (rc_button(rectcut(&toolbar, RectCut_Left), "About")) {
-   
+    if (rc_button(rectcut(&toolbar, RectCut_Left), "Reload")) {
+        app->reload_plugin();
     }
 
     if (rc_button(rectcut(&toolbar, RectCut_Left), "Help")) {
@@ -402,12 +471,25 @@ void CharmApp::on_render(charm::Rect window_rect, float scale)
     //     printf("Button clicked!\n");
     // }
 
-    this->main_gain    = ui_host_parameter_row(window_rect, mainGainParamID,     this->main_gain);
-    this->phase_invert = ui_host_parameter_row(window_rect, phaseInvertParamID,  this->phase_invert);
-    ui_host_parameter_row(window_rect, filterCutoffParamID, 0.5f);
-    ui_host_parameter_row(window_rect, filterResParamID,    0.0f);
-    ui_host_parameter_row(window_rect, filterFoldParamID,   0.0f);
-    ui_host_parameter_row(window_rect, filterDriveParamID,  0.0f);
+    charm::Rect new_line = cut_top(&window_rect, 32.0);
+    // just a label
+    rc_label(rectcut(&new_line, RectCut_Left), "dylibs folder");
+
+    // list plugins from dylibs folder
+    auto available_plugins = scan_available_plugins();
+    for (const auto& plugin_name : available_plugins) {
+        if (rc_button(rectcut(&new_line, RectCut_Left), plugin_name.c_str())) {
+            // Load the plugin
+            std::string plugin_path = "/Users/aidan/dev/cpp/juce_cmake/hotreloadcharm/build/plugins/" + plugin_name + ".dylib";
+            load_plugin(plugin_path);
+        }
+    }
+
+
+    ui_host_parameter_row(window_rect, knob_1_param_id, 0.0);
+    ui_host_parameter_row(window_rect, knob_2_param_id, 0.0);
+    ui_host_parameter_row(window_rect, knob_3_param_id, 0.5f);
+    ui_host_parameter_row(window_rect, knob_4_param_id, 0.0f);
 
     end_scroll_area();
 
