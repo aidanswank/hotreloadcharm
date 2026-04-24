@@ -74,6 +74,8 @@ target_sources(${PROJECT_NAME}
     source/ui_impl.cpp
     source/CharmApp.h
     source/CharmApp.cpp
+    source/PhasorClock.h
+    source/PhasorClock.cpp
 )
 
 # Include directories

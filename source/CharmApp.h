@@ -3,6 +3,7 @@
 
 #include "ui.h"
 #include "module_loader.h"
+#include "PhasorClock.h"
 
 #include <nanovg.h>
 
@@ -186,6 +187,9 @@ public:
 
     float signal[1024*16];
     float magnitude_threshold = 8.0f;
+
+    PhasorClock phasor_clock;
+    CustomFunctionState custom_function_state;
 
 private:
     juce::AudioProcessorValueTreeState* host_parameters = nullptr;

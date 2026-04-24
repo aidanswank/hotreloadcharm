@@ -396,10 +396,13 @@ void CharmAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::M
         // {
         //    if (module->name == "PhasorClock")
         //    {
-        //        auto* phasor = static_cast<PhasorClock*>(module);
-        //        phasor->resyncFromPPQ(ppqPosition);
+            //    auto* phasor = static_cast<PhasorClock*>(module);
+            //    phasor->resyncFromPPQ(ppqPosition);
         //    }
         // }
+
+        app->phasor_clock.set_bpm(hostBPM, getSampleRate());
+        app->phasor_clock.resync_from_ppq(ppqPosition);
     }
     app->process_audio(outputs, numChannels, numSamples);
 }

@@ -2454,6 +2454,48 @@ bool ui_text_box(charm::Rect rect, TextBoxState& state) {
 //     std::vector<charm::Vec2> points;
 // };
 
+void ui_custom_function_eval(CustomFunctionState* state)
+{
+        // calculate playhead value
+    if(state->points.size() >= 2)
+    {
+        // find the two points surrounding the playhead
+        charm::Vec2 left_point  = {0.0f, 0.0f};
+        charm::Vec2 right_point = {1.0f, 0.0f};
+
+        for(int i = 0; i < state->points.size(); i++)
+        {
+            if(state->points[i].x <= state->playhead_pos)
+            {
+                left_point = state->points[i];
+            }
+            else
+            {
+                right_point = state->points[i];
+                break;
+            }
+        }
+
+        // interpolate between the two surrounding points
+        float t = 0.0f;
+        float dx = right_point.x - left_point.x;
+        if(dx > 0.0001f) // avoid divide by zero
+        {
+            t = (state->playhead_pos - left_point.x) / dx;
+        }
+
+        state->playhead_function_value = lerp(left_point.y, right_point.y, t);
+    }
+    else if(state->points.size() == 1)
+    {
+        state->playhead_function_value = state->points[0].y;
+    }
+    else
+    {
+        state->playhead_function_value = 0.0f;
+    }
+}
+
 WidgetComm ui_custom_function_widget(charm::Rect rect, CustomFunctionState* state)
 {
     UICore& ui = *get_ui_state();
@@ -2462,6 +2504,17 @@ WidgetComm ui_custom_function_widget(charm::Rect rect, CustomFunctionState* stat
     // ui.draw_box(toggle_box, {255,0,255,255});
     // float old_padding = theme.padding;
     // theme.padding = 0;
+    if(rc_button(rectcut(&new_line, RectCut_Left), "Delete Point"))
+    {
+        // remove vector at state->selected_point_idx if its not -1
+        if(state->selected_point_idx != -1)
+        {
+            state->points.erase(state->points.begin() + state->selected_point_idx);
+            state->selected_point_idx = -1;
+        }
+
+    }
+
     rc_label(rectcut(&new_line, RectCut_Left), "Snap");
     // theme.padding = old_padding;
     charm::Rect toggle_box = cut_left(&new_line, 32);
@@ -2470,6 +2523,23 @@ WidgetComm ui_custom_function_widget(charm::Rect rect, CustomFunctionState* stat
     rc_label(rectcut(&new_line, RectCut_Left), "Playhead Pos: %f", state->playhead_pos);
     rc_label(rectcut(&new_line, RectCut_Left), "Function Value: %f", state->playhead_function_value);
     rc_label(rectcut(&new_line, RectCut_Left), "Num Points: %i", state->points.size());
+
+    new_line = cut_top(&rect, 32);
+    rc_label(rectcut(&new_line, RectCut_Left), "Grid X");
+    if(rc_button(rectcut(&new_line, RectCut_Left), "2"))
+        state->num_grid_lines.x = 2;
+    if(rc_button(rectcut(&new_line, RectCut_Left), "4"))
+        state->num_grid_lines.x = 4;
+    if(rc_button(rectcut(&new_line, RectCut_Left), "8"))
+        state->num_grid_lines.x = 8;
+
+    rc_label(rectcut(&new_line, RectCut_Left), "Grid Y");
+    if(rc_button(rectcut(&new_line, RectCut_Left), "2"))
+        state->num_grid_lines.y = 2;
+    if(rc_button(rectcut(&new_line, RectCut_Left), "4"))
+        state->num_grid_lines.y = 4;
+    if(rc_button(rectcut(&new_line, RectCut_Left), "8"))
+        state->num_grid_lines.y = 8;
 
     WidgetComm main_widget = ui.build_widget(rect, WidgetFlag_Clickable | WidgetFlag_HotAnimation | WidgetFlag_TextInput);
     // bool snap_to_grid = ui_checkbox(toggle_box, "Snap to grid", state->snap
@@ -2541,13 +2611,17 @@ WidgetComm ui_custom_function_widget(charm::Rect rect, CustomFunctionState* stat
             ui.draw_rect(point_hitbox, {255,255,255,100});
         }
 
+        if (ui.kbditem == point_widget.id)
+        {
+            state->selected_point_idx = i;
+        }
+
         if(point_widget.dragging)
         {
             float normalized_drag_delta_frame_x = point_widget.drag_delta_frame.x / rect.w;
             float normalized_drag_delta_frame_y = point_widget.drag_delta_frame.y / rect.h;
             state->points[i].x += normalized_drag_delta_frame_x;
             state->points[i].y += normalized_drag_delta_frame_y;
-            // point_widget.drag_released
         }
 
         if(point_widget.released)
@@ -2584,44 +2658,46 @@ WidgetComm ui_custom_function_widget(charm::Rect rect, CustomFunctionState* stat
         }
     }
 
-    // calculate playhead value
-    if(state->points.size() >= 2)
-    {
-        // find the two points surrounding the playhead
-        charm::Vec2 left_point  = {0.0f, 0.0f};
-        charm::Vec2 right_point = {1.0f, 0.0f};
+    // // calculate playhead value
+    // if(state->points.size() >= 2)
+    // {
+    //     // find the two points surrounding the playhead
+    //     charm::Vec2 left_point  = {0.0f, 0.0f};
+    //     charm::Vec2 right_point = {1.0f, 0.0f};
 
-        for(int i = 0; i < state->points.size(); i++)
-        {
-            if(state->points[i].x <= state->playhead_pos)
-            {
-                left_point = state->points[i];
-            }
-            else
-            {
-                right_point = state->points[i];
-                break;
-            }
-        }
+    //     for(int i = 0; i < state->points.size(); i++)
+    //     {
+    //         if(state->points[i].x <= state->playhead_pos)
+    //         {
+    //             left_point = state->points[i];
+    //         }
+    //         else
+    //         {
+    //             right_point = state->points[i];
+    //             break;
+    //         }
+    //     }
 
-        // interpolate between the two surrounding points
-        float t = 0.0f;
-        float dx = right_point.x - left_point.x;
-        if(dx > 0.0001f) // avoid divide by zero
-        {
-            t = (state->playhead_pos - left_point.x) / dx;
-        }
+    //     // interpolate between the two surrounding points
+    //     float t = 0.0f;
+    //     float dx = right_point.x - left_point.x;
+    //     if(dx > 0.0001f) // avoid divide by zero
+    //     {
+    //         t = (state->playhead_pos - left_point.x) / dx;
+    //     }
 
-        state->playhead_function_value = lerp(left_point.y, right_point.y, t);
-    }
-    else if(state->points.size() == 1)
-    {
-        state->playhead_function_value = state->points[0].y;
-    }
-    else
-    {
-        state->playhead_function_value = 0.0f;
-    }
+    //     state->playhead_function_value = lerp(left_point.y, right_point.y, t);
+    // }
+    // else if(state->points.size() == 1)
+    // {
+    //     state->playhead_function_value = state->points[0].y;
+    // }
+    // else
+    // {
+    //     state->playhead_function_value = 0.0f;
+    // }
+
+    // custom_function_eval(state);
 
     if(main_widget.clicked)
     {

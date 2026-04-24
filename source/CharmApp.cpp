@@ -264,6 +264,10 @@ float CharmApp::moog_filter(float input, float cutoff, float res, float fold, fl
 
 void CharmApp::process_audio(float* outputs[], int num_channels, int num_samples)
 {
+    ui_custom_function_eval(&this->custom_function_state);
+    
+    set_host_parameter_value(knob_1_param_id, 1.0 - this->custom_function_state.playhead_function_value);
+
     if (this->module_loader.is_loaded())
     {
         // Build context with current parameter values
@@ -495,11 +499,12 @@ void CharmApp::on_render(charm::Rect window_rect, float scale)
     
     begin_scroll_area(NULL, NULL, &window_rect, ""); // there is no scroll area just turns the "area" active todo fix
     charm::Rect leftover_shrunk_rect = shrink_rect(window_rect, 16.0);
-    static CustomFunctionState custom_function_state = {};
-    custom_function_state.playhead_pos += ui.dt * 0.1f; // animate playhead for demo
-    if (custom_function_state.playhead_pos > 1.0f)
-        custom_function_state.playhead_pos -= 1.0f;
-    ui_custom_function_widget(leftover_shrunk_rect, &custom_function_state);
+    // static CustomFunctionState custom_function_state = {};
+    // custom_function_state.playhead_pos += ui.dt * 0.1f; // animate playhead for demo
+    this->custom_function_state.playhead_pos = this->phasor_clock.phase;
+    // if (custom_function_state.playhead_pos > 1.0f)
+    //     custom_function_state.playhead_pos -= 1.0f;
+    ui_custom_function_widget(leftover_shrunk_rect, &this->custom_function_state);
     end_scroll_area();
 
     // printf("HEY!!!!\n");

@@ -19,7 +19,7 @@ public:
         if (!context) return;
 
         // KNOB_1 controls gain from 0.0 to 2.0
-        float gain = context->knob_1 * 2.0f;
+        float gain = context->knob_1 * 4.0f;
 
         for (int ch = 0; ch < num_channels; ++ch)
         {

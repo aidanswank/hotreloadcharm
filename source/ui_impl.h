@@ -8,7 +8,7 @@ class CharmApp;
 
 struct UITheme
 {
-	Color button_color = {65,57,68,200};
+	Color button_color = {65,57,68,150};
     Color hot_color = {255,255,255,100};
     Color flash_color = {255,255,255,180};
     Color text_color = {255,255,255,255};
@@ -168,7 +168,8 @@ bool ui_drag_button(charm::Rect &rect);
 
 struct CustomFunctionState
 {
-    std::vector<charm::Vec2> points;
+    std::vector<charm::Vec2> points = {{0.0f, 0.0f}, {0.5f, 0.5f}, {1.0f, 1.0f}};
+    int selected_point_idx = -1;
     // int num_grid_x = 4;
     // int num_grid_y = 2;
     charm::Vec2 num_grid_lines = {4, 2};
@@ -177,4 +178,8 @@ struct CustomFunctionState
     float playhead_function_value = 0.0f; // value at playhead position, between 0 and 1 based on grid
 };
 
+// called in ui loop
 WidgetComm ui_custom_function_widget(charm::Rect rect, CustomFunctionState* state);
+
+// called in audio loop
+void ui_custom_function_eval(CustomFunctionState* state);
