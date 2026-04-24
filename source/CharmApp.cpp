@@ -280,6 +280,8 @@ void CharmApp::process_audio(float* outputs[], int num_channels, int num_samples
 
 bool CharmApp::load_plugin(const std::string& dylib_path)
 {
+        printf("[CharmApp %p] Loading plugin: %s\n", this, dylib_path.c_str());
+
     if (!this->module_loader.load(dylib_path))
     {
         printf("Failed to load module: %s\n", this->module_loader.get_error().c_str());
@@ -326,6 +328,10 @@ std::vector<std::string> CharmApp::scan_available_modules()
         struct dirent* entry;
         while ((entry = readdir(dir)) != nullptr) {
             std::string filename = entry->d_name;
+
+            // Skip hidden/temp files
+            if (filename.find(".tmp_") != std::string::npos) continue;
+
             // Look for .dylib files
             if (filename.size() > 6 && filename.substr(filename.size() - 6) == ".dylib") {
                 // Remove .dylib extension for display
