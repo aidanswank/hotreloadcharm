@@ -264,6 +264,7 @@ float CharmApp::moog_filter(float input, float cutoff, float res, float fold, fl
 
 void CharmApp::process_audio(float* outputs[], int num_channels, int num_samples)
 {
+    this->custom_function_state.playhead_pos = this->phasor_clock.phase;
     ui_custom_function_eval(&this->custom_function_state);
     
     set_host_parameter_value(knob_1_param_id, 1.0 - this->custom_function_state.playhead_function_value);
@@ -501,7 +502,7 @@ void CharmApp::on_render(charm::Rect window_rect, float scale)
     charm::Rect leftover_shrunk_rect = shrink_rect(window_rect, 16.0);
     // static CustomFunctionState custom_function_state = {};
     // custom_function_state.playhead_pos += ui.dt * 0.1f; // animate playhead for demo
-    this->custom_function_state.playhead_pos = this->phasor_clock.phase;
+    // this->custom_function_state.playhead_pos = this->phasor_clock.phase;
     // if (custom_function_state.playhead_pos > 1.0f)
     //     custom_function_state.playhead_pos -= 1.0f;
     ui_custom_function_widget(leftover_shrunk_rect, &this->custom_function_state);
