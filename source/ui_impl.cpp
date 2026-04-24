@@ -2541,6 +2541,24 @@ WidgetComm ui_custom_function_widget(charm::Rect rect, CustomFunctionState* stat
     if(rc_button(rectcut(&new_line, RectCut_Left), "8"))
         state->num_grid_lines.y = 8;
 
+    rc_label(rectcut(&new_line, RectCut_Left), "Bars");
+    if(rc_button(rectcut(&new_line, RectCut_Left), "1/2"))
+        state->phasor_clock->osc_time_bars = 0.5;
+    if(rc_button(rectcut(&new_line, RectCut_Left), "1/3"))
+        state->phasor_clock->osc_time_bars = 1.0 / 3.0;
+    if(rc_button(rectcut(&new_line, RectCut_Left), "1"))
+        state->phasor_clock->osc_time_bars = 1;
+    if(rc_button(rectcut(&new_line, RectCut_Left), "1.5"))
+        state->phasor_clock->osc_time_bars = 1.5;
+    if(rc_button(rectcut(&new_line, RectCut_Left), "2"))
+        state->phasor_clock->osc_time_bars = 2;
+    if(rc_button(rectcut(&new_line, RectCut_Left), "3"))
+        state->phasor_clock->osc_time_bars = 3;
+    if(rc_button(rectcut(&new_line, RectCut_Left), "4"))
+        state->phasor_clock->osc_time_bars = 4;
+    if(rc_button(rectcut(&new_line, RectCut_Left), "8"))
+        state->phasor_clock->osc_time_bars = 8;
+
     WidgetComm main_widget = ui.build_widget(rect, WidgetFlag_Clickable | WidgetFlag_HotAnimation | WidgetFlag_TextInput);
     // bool snap_to_grid = ui_checkbox(toggle_box, "Snap to grid", state->snap
     

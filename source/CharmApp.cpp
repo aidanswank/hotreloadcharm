@@ -21,16 +21,8 @@ juce::RangedAudioParameter* get_host_parameter(juce::AudioProcessorValueTreeStat
 CharmApp::CharmApp()
 // :
 {
-    // Plugin will be loaded dynamically from UI
-    // if(this->module_loader.load("/Users/aidan/dev/cpp/juce_cmake/hotreloadcharm/build/plugins/filter_plugin.dylib"))
-    // {
-    //     this->module_loader.create_instance();
-    //     printf("✓ Loaded plugin: %s v%s\n", this->module_loader.get_name(), this->module_loader.get_version());
-    // }
-    // else
-    // {
-    //     printf("Failed to load plugin: %s\n", this->module_loader.get_error().c_str());
-    // }
+    this->custom_function_state.phasor_clock = &this->phasor_clock;
+
 }
 
 CharmApp::~CharmApp()
@@ -274,6 +266,7 @@ void CharmApp::process_audio(float* outputs[], int num_channels, int num_samples
         // Build context with current parameter values
         ModuleAudioContext context;
         context.knob_1 = get_host_parameter_value(knob_1_param_id, 0.5f);
+        // context.knob_1 = this->custom_function_state.playhead_function_value; // override with custom function for demo
         context.knob_2 = get_host_parameter_value(knob_2_param_id, 0.5f);
         context.knob_3 = get_host_parameter_value(knob_3_param_id, 0.5f);
         context.knob_4 = get_host_parameter_value(knob_4_param_id, 0.5f);

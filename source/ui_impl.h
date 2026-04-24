@@ -166,8 +166,11 @@ void rc_text_input(RectCut layout, char* buffer, int* cursor_pos);
 
 bool ui_drag_button(charm::Rect &rect);
 
+#include "PhasorClock.h"
+
 struct CustomFunctionState
 {
+    PhasorClock *phasor_clock = nullptr;
     std::vector<charm::Vec2> points = {{0.0f, 0.0f}, {0.5f, 0.5f}, {1.0f, 1.0f}};
     int selected_point_idx = -1;
     // int num_grid_x = 4;
