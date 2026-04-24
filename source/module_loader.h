@@ -6,6 +6,14 @@
 #include <filesystem>
 #include <unistd.h>
 
+/**
+ * Module Loader - Manages hot-reloadable modules
+ * 
+ * This class handles:
+ * - Loading modules from dylib files
+ * - Hot-reloading (unload old, load new)
+ * - Managing module lifecycle (create/destroy)
+ */
 
 class ModuleLoader
 {

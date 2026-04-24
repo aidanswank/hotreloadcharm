@@ -2558,10 +2558,23 @@ WidgetComm ui_custom_function_widget(charm::Rect rect, CustomFunctionState* stat
         state->phasor_clock->osc_time_bars = 4;
     if(rc_button(rectcut(&new_line, RectCut_Left), "8"))
         state->phasor_clock->osc_time_bars = 8;
+        
+    charm::Rect side_bar_widget_rect = cut_left(&rect, 32);
+    ui.draw_box(side_bar_widget_rect, {255,0,255,255});
+    // rc_label(rectcut(&side_bar_widget_rect, RectCut_Left), "Grid Y");
+    
+    charm::Rect new_line2 = cut_top(&side_bar_widget_rect, 32);
+    if(ui_button_rect(new_line2))
+    {
+        state->num_grid_lines.y = 2;
+    }
+    // if(rc_button(rectcut(&new_line2, RectCut_Left), "4"))
+    //     state->num_grid_lines.y = 4;
+    // if(rc_button(rectcut(&new_line2, RectCut_Left), "8"))
+    //     state->num_grid_lines.y = 8;
+        
 
     WidgetComm main_widget = ui.build_widget(rect, WidgetFlag_Clickable | WidgetFlag_HotAnimation | WidgetFlag_TextInput);
-    // bool snap_to_grid = ui_checkbox(toggle_box, "Snap to grid", state->snap
-    
     // ui.draw_rect(rect, theme.button_color);
     ui.draw_box(rect, {255,0,255,255});
 
@@ -2570,19 +2583,20 @@ WidgetComm ui_custom_function_widget(charm::Rect rect, CustomFunctionState* stat
     // draw grid lines
     for(int i = 1; i < state->num_grid_lines.x; i++)
     {
-        for(int j = 1; j < state->num_grid_lines.y; j++)
-        {
-            ui.draw_line(
-                {rect.x + i * rect.w / state->num_grid_lines.x, rect.y},
-                {rect.x + i * rect.w / state->num_grid_lines.x, rect.y + rect.h},
-                {100,100,100,50}
-            );
-            ui.draw_line(
-                {rect.x, rect.y + j * rect.h / state->num_grid_lines.y},
-                {rect.x + rect.w, rect.y + j * rect.h / state->num_grid_lines.y},
-                {100,100,100,50}
-            );
-        }
+        ui.draw_line(
+            {rect.x + i * rect.w / state->num_grid_lines.x, rect.y},
+            {rect.x + i * rect.w / state->num_grid_lines.x, rect.y + rect.h},
+            {100,100,100,50}
+        );
+    }
+
+    for(int j = 1; j < state->num_grid_lines.y; j++)
+    {
+        ui.draw_line(
+            {rect.x, rect.y + j * rect.h / state->num_grid_lines.y},
+            {rect.x + rect.w, rect.y + j * rect.h / state->num_grid_lines.y},
+            {100,100,100,50}
+        );
     }
     // charm::Vec2 mouse_pos = ui.mouse_pos;
 
@@ -2675,47 +2689,6 @@ WidgetComm ui_custom_function_widget(charm::Rect rect, CustomFunctionState* stat
             );
         }
     }
-
-    // // calculate playhead value
-    // if(state->points.size() >= 2)
-    // {
-    //     // find the two points surrounding the playhead
-    //     charm::Vec2 left_point  = {0.0f, 0.0f};
-    //     charm::Vec2 right_point = {1.0f, 0.0f};
-
-    //     for(int i = 0; i < state->points.size(); i++)
-    //     {
-    //         if(state->points[i].x <= state->playhead_pos)
-    //         {
-    //             left_point = state->points[i];
-    //         }
-    //         else
-    //         {
-    //             right_point = state->points[i];
-    //             break;
-    //         }
-    //     }
-
-    //     // interpolate between the two surrounding points
-    //     float t = 0.0f;
-    //     float dx = right_point.x - left_point.x;
-    //     if(dx > 0.0001f) // avoid divide by zero
-    //     {
-    //         t = (state->playhead_pos - left_point.x) / dx;
-    //     }
-
-    //     state->playhead_function_value = lerp(left_point.y, right_point.y, t);
-    // }
-    // else if(state->points.size() == 1)
-    // {
-    //     state->playhead_function_value = state->points[0].y;
-    // }
-    // else
-    // {
-    //     state->playhead_function_value = 0.0f;
-    // }
-
-    // custom_function_eval(state);
 
     if(main_widget.clicked)
     {
