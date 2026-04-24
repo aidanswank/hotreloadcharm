@@ -173,9 +173,7 @@ struct CustomFunctionState
     PhasorClock *phasor_clock = nullptr;
     std::vector<charm::Vec2> points = {{0.0f, 0.0f}, {0.5f, 0.5f}, {1.0f, 1.0f}};
     int selected_point_idx = -1;
-    // int num_grid_x = 4;
-    // int num_grid_y = 2;
-    charm::Vec2 num_grid_lines = {4, 2};
+    charm::Vec2 num_grid_lines = {8, 8};
     bool snap_to_grid = true;
     float playhead_pos = 0.0f; // 0.0 to 1.0
     float playhead_function_value = 0.0f; // value at playhead position, between 0 and 1 based on grid

@@ -468,7 +468,7 @@ void CharmApp::on_render(charm::Rect window_rect, float scale)
     // ui.draw_rect(side_panel, get_ui_theme()->panel_color);
     // ui.draw_box(side_panel, get_ui_theme()->border_color);
 
-    begin_scroll_area(NULL, &this->main_panel_scroll_y, &window_rect, "main");
+    begin_scroll_area(NULL, NULL, &window_rect, "main");
 
     // charm::Rect new_line = cut_top(&window_rect, 32);
     // if(rc_button(rectcut(&new_line, RectCut_Left), "reload")) {
@@ -490,10 +490,10 @@ void CharmApp::on_render(charm::Rect window_rect, float scale)
     }
 
 
-    ui_host_parameter_row(window_rect, knob_1_param_id, 0.0);
-    ui_host_parameter_row(window_rect, knob_2_param_id, 0.0);
-    ui_host_parameter_row(window_rect, knob_3_param_id, 0.5f);
-    ui_host_parameter_row(window_rect, knob_4_param_id, 0.0f);
+    ui_host_parameter_row(window_rect, knob_1_param_id, 0.0, 24.0f, 59.0f);
+    ui_host_parameter_row(window_rect, knob_2_param_id, 0.0, 24.0f, 59.0f);
+    ui_host_parameter_row(window_rect, knob_3_param_id, 0.0, 24.0f, 59.0f);
+    ui_host_parameter_row(window_rect, knob_4_param_id, 0.0, 24.0f, 59.0f);
     
     end_scroll_area();
     

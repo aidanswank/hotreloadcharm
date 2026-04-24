@@ -2504,7 +2504,13 @@ WidgetComm ui_custom_function_widget(charm::Rect rect, CustomFunctionState* stat
     // ui.draw_box(toggle_box, {255,0,255,255});
     // float old_padding = theme.padding;
     // theme.padding = 0;
-    if(rc_button(rectcut(&new_line, RectCut_Left), "Delete Point"))
+    if(rc_button(rectcut(&new_line, RectCut_Left), "Clear"))
+    {
+        state->points.clear();
+        state->selected_point_idx = -1;
+    }
+
+    if(rc_button(rectcut(&new_line, RectCut_Left), "Delete Selected") || ui.keyentered == CHARM_KEY_BACKSPACE)
     {
         // remove vector at state->selected_point_idx if its not -1
         if(state->selected_point_idx != -1)
@@ -2559,15 +2565,15 @@ WidgetComm ui_custom_function_widget(charm::Rect rect, CustomFunctionState* stat
     if(rc_button(rectcut(&new_line, RectCut_Left), "8"))
         state->phasor_clock->osc_time_bars = 8;
         
-    charm::Rect side_bar_widget_rect = cut_left(&rect, 32);
-    ui.draw_box(side_bar_widget_rect, {255,0,255,255});
+    // charm::Rect side_bar_widget_rect = cut_left(&rect, 32);
+    // ui.draw_box(side_bar_widget_rect, {255,0,255,255});
     // rc_label(rectcut(&side_bar_widget_rect, RectCut_Left), "Grid Y");
     
-    charm::Rect new_line2 = cut_top(&side_bar_widget_rect, 32);
-    if(ui_button_rect(new_line2))
-    {
-        state->num_grid_lines.y = 2;
-    }
+    // charm::Rect new_line2 = cut_top(&side_bar_widget_rect, 32);
+    // if(ui_button_rect(new_line2))
+    // {
+    //     state->num_grid_lines.y = 2;
+    // }
     // if(rc_button(rectcut(&new_line2, RectCut_Left), "4"))
     //     state->num_grid_lines.y = 4;
     // if(rc_button(rectcut(&new_line2, RectCut_Left), "8"))
@@ -2648,13 +2654,21 @@ WidgetComm ui_custom_function_widget(charm::Rect rect, CustomFunctionState* stat
             state->selected_point_idx = i;
         }
 
-        if(point_widget.dragging)
-        {
-            float normalized_drag_delta_frame_x = point_widget.drag_delta_frame.x / rect.w;
-            float normalized_drag_delta_frame_y = point_widget.drag_delta_frame.y / rect.h;
-            state->points[i].x += normalized_drag_delta_frame_x;
-            state->points[i].y += normalized_drag_delta_frame_y;
-        }
+if(point_widget.dragging)
+{
+    float normalized_drag_delta_frame_x = point_widget.drag_delta_frame.x / rect.w;
+    float normalized_drag_delta_frame_y = point_widget.drag_delta_frame.y / rect.h;
+    state->points[i].x += normalized_drag_delta_frame_x;
+    state->points[i].y += normalized_drag_delta_frame_y;
+
+    // clamp x between prev and next point
+    float min_x = (i > 0) ? state->points[i-1].x : 0.0f;
+    float max_x = (i < state->points.size() - 1) ? state->points[i+1].x : 1.0f;
+    state->points[i].x = std::clamp(state->points[i].x, min_x, max_x);
+
+    // clamp y to stay within the widget
+    state->points[i].y = std::clamp(state->points[i].y, 0.0f, 1.0f);
+}
 
         if(point_widget.released)
         {
@@ -2715,7 +2729,18 @@ WidgetComm ui_custom_function_widget(charm::Rect rect, CustomFunctionState* stat
              printf("snapped relative pos %f %f\n", relative_pos.x, relative_pos.y);
              printf("snapped normalized pos %f %f\n", normalized_pos.x, normalized_pos.y);
         }
-        state->points.push_back(normalized_pos);
+
+         int insert_idx = state->points.size(); // default to end
+        for(int i = 0; i < state->points.size(); i++)
+        {
+            if(normalized_pos.x < state->points[i].x)
+            {
+                insert_idx = i;
+                break;
+            }
+        }
+        state->points.insert(state->points.begin() + insert_idx, normalized_pos);
+        // state->points.push_back(normalized_pos);
     }
 
     // draw playhead line
