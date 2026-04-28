@@ -183,4 +183,4 @@ struct CustomFunctionState
 WidgetComm ui_custom_function_widget(charm::Rect rect, CustomFunctionState* state);
 
 // called in audio loop
-void ui_custom_function_eval(CustomFunctionState* state);
+float ui_custom_function_eval(CustomFunctionState* state);

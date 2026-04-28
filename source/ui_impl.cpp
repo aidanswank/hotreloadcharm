@@ -2454,46 +2454,68 @@ bool ui_text_box(charm::Rect rect, TextBoxState& state) {
 //     std::vector<charm::Vec2> points;
 // };
 
-void ui_custom_function_eval(CustomFunctionState* state)
+float ui_custom_function_eval(CustomFunctionState* state)
 {
-        // calculate playhead value
-    if(state->points.size() >= 2)
-    {
-        // find the two points surrounding the playhead
-        charm::Vec2 left_point  = {0.0f, 0.0f};
-        charm::Vec2 right_point = {1.0f, 0.0f};
+    //     // calculate playhead value
+    // if(state->points.size() >= 2)
+    // {
+    //     // find the two points surrounding the playhead
+    //     charm::Vec2 left_point  = {0.0f, 0.0f};
+    //     charm::Vec2 right_point = {1.0f, 0.0f};
 
-        for(int i = 0; i < state->points.size(); i++)
-        {
-            if(state->points[i].x <= state->playhead_pos)
-            {
-                left_point = state->points[i];
-            }
-            else
-            {
-                right_point = state->points[i];
-                break;
-            }
+    //     for(int i = 0; i < state->points.size(); i++)
+    //     {
+    //         if(state->points[i].x <= state->playhead_pos)
+    //         {
+    //             left_point = state->points[i];
+    //         }
+    //         else
+    //         {
+    //             right_point = state->points[i];
+    //             break;
+    //         }
+    //     }
+
+    //     // interpolate between the two surrounding points
+    //     float t = 0.0f;
+    //     float dx = right_point.x - left_point.x;
+    //     if(dx > 0.0001f) // avoid divide by zero
+    //     {
+    //         t = (state->playhead_pos - left_point.x) / dx;
+    //     }
+
+    //     state->playhead_function_value = lerp(left_point.y, right_point.y, t);
+    // }
+    // else if(state->points.size() == 1)
+    // {
+    //     state->playhead_function_value = state->points[0].y;
+    // }
+    // else
+    // {
+    //     state->playhead_function_value = 0.0f;
+    // }
+
+    // link phasor clock to playhead
+    state->playhead_pos = state->phasor_clock->phase;
+
+    float x = state->playhead_pos;
+
+    if (state->points.empty()) return 0.0f;
+    if (state->points.size() == 1) return state->points.front().y;
+
+    // Find segment
+    for (size_t i = 0; i + 1 < state->points.size(); i++) {
+        const charm::Vec2& a = state->points[i];
+        const charm::Vec2& b = state->points[i+1];
+        if (x >= a.x && x <= b.x) {
+            float t = (x - a.x) / (b.x - a.x);
+            state->playhead_function_value = a.y + t * (b.y - a.y); // Linear interp (replace with bezier later)
+            return state->playhead_function_value;
         }
-
-        // interpolate between the two surrounding points
-        float t = 0.0f;
-        float dx = right_point.x - left_point.x;
-        if(dx > 0.0001f) // avoid divide by zero
-        {
-            t = (state->playhead_pos - left_point.x) / dx;
-        }
-
-        state->playhead_function_value = lerp(left_point.y, right_point.y, t);
     }
-    else if(state->points.size() == 1)
-    {
-        state->playhead_function_value = state->points[0].y;
-    }
-    else
-    {
-        state->playhead_function_value = 0.0f;
-    }
+    // return state->points.back().y;
+    state->playhead_function_value = state->points.back().y;
+    return state->playhead_function_value;
 }
 
 WidgetComm ui_custom_function_widget(charm::Rect rect, CustomFunctionState* state)
@@ -2518,7 +2540,6 @@ WidgetComm ui_custom_function_widget(charm::Rect rect, CustomFunctionState* stat
             state->points.erase(state->points.begin() + state->selected_point_idx);
             state->selected_point_idx = -1;
         }
-
     }
 
     rc_label(rectcut(&new_line, RectCut_Left), "Snap");
@@ -2531,27 +2552,33 @@ WidgetComm ui_custom_function_widget(charm::Rect rect, CustomFunctionState* stat
     rc_label(rectcut(&new_line, RectCut_Left), "Num Points: %i", state->points.size());
 
     new_line = cut_top(&rect, 32);
-    rc_label(rectcut(&new_line, RectCut_Left), "Grid X");
+    rc_label(rectcut(&new_line, RectCut_Left), "X");
     if(rc_button(rectcut(&new_line, RectCut_Left), "2"))
         state->num_grid_lines.x = 2;
     if(rc_button(rectcut(&new_line, RectCut_Left), "4"))
         state->num_grid_lines.x = 4;
     if(rc_button(rectcut(&new_line, RectCut_Left), "8"))
         state->num_grid_lines.x = 8;
+    if(rc_button(rectcut(&new_line, RectCut_Left), "16"))
+        state->num_grid_lines.x = 16;
 
-    rc_label(rectcut(&new_line, RectCut_Left), "Grid Y");
+    rc_label(rectcut(&new_line, RectCut_Left), "Y");
     if(rc_button(rectcut(&new_line, RectCut_Left), "2"))
         state->num_grid_lines.y = 2;
     if(rc_button(rectcut(&new_line, RectCut_Left), "4"))
         state->num_grid_lines.y = 4;
     if(rc_button(rectcut(&new_line, RectCut_Left), "8"))
         state->num_grid_lines.y = 8;
+    if(rc_button(rectcut(&new_line, RectCut_Left), "16"))
+        state->num_grid_lines.y = 16;
+
+    // new_line = cut_top(&rect, 32);
 
     rc_label(rectcut(&new_line, RectCut_Left), "Bars");
+    if(rc_button(rectcut(&new_line, RectCut_Left), "1/3"))
+    state->phasor_clock->osc_time_bars = 1.0 / 3.0;
     if(rc_button(rectcut(&new_line, RectCut_Left), "1/2"))
         state->phasor_clock->osc_time_bars = 0.5;
-    if(rc_button(rectcut(&new_line, RectCut_Left), "1/3"))
-        state->phasor_clock->osc_time_bars = 1.0 / 3.0;
     if(rc_button(rectcut(&new_line, RectCut_Left), "1"))
         state->phasor_clock->osc_time_bars = 1;
     if(rc_button(rectcut(&new_line, RectCut_Left), "1.5"))
@@ -2564,6 +2591,26 @@ WidgetComm ui_custom_function_widget(charm::Rect rect, CustomFunctionState* stat
         state->phasor_clock->osc_time_bars = 4;
     if(rc_button(rectcut(&new_line, RectCut_Left), "8"))
         state->phasor_clock->osc_time_bars = 8;
+
+    rc_label(rectcut(&new_line, RectCut_Left), "Multiplier");
+    // if(rc_button(rectcut(&new_line, RectCut_Left), "1/2"))
+    //     state->phasor_clock->multiplier = 0.5;
+    // if(rc_button(rectcut(&new_line, RectCut_Left), "1/3"))
+    //     state->phasor_clock->multiplier = 1.0 / 3.0;
+    if(rc_button(rectcut(&new_line, RectCut_Left), "1"))
+        state->phasor_clock->multiplier = 1;
+    // if(rc_button(rectcut(&new_line, RectCut_Left), "1.5"))
+    //     state->phasor_clock->multiplier = 1.5;
+    if(rc_button(rectcut(&new_line, RectCut_Left), "2"))
+        state->phasor_clock->multiplier = 2;
+    if(rc_button(rectcut(&new_line, RectCut_Left), "3"))
+        state->phasor_clock->multiplier = 3;
+    if(rc_button(rectcut(&new_line, RectCut_Left), "4"))
+        state->phasor_clock->multiplier = 4;
+    if(rc_button(rectcut(&new_line, RectCut_Left), "8"))
+        state->phasor_clock->multiplier = 8;
+    if(rc_button(rectcut(&new_line, RectCut_Left), "16"))
+        state->phasor_clock->multiplier = 16;
         
     // charm::Rect side_bar_widget_rect = cut_left(&rect, 32);
     // ui.draw_box(side_bar_widget_rect, {255,0,255,255});
@@ -2580,9 +2627,9 @@ WidgetComm ui_custom_function_widget(charm::Rect rect, CustomFunctionState* stat
     //     state->num_grid_lines.y = 8;
         
 
-    WidgetComm main_widget = ui.build_widget(rect, WidgetFlag_Clickable | WidgetFlag_HotAnimation | WidgetFlag_TextInput);
+    WidgetComm main_widget = ui.build_widget(rect, WidgetFlag_Clickable | WidgetFlag_TextInput);
     // ui.draw_rect(rect, theme.button_color);
-    ui.draw_box(rect, {255,0,255,255});
+    ui.draw_box(rect, get_ui_theme()->border_color);
 
     // int num_grid_x = 4;
     // int num_grid_y = 2;
@@ -2618,7 +2665,7 @@ WidgetComm ui_custom_function_widget(charm::Rect rect, CustomFunctionState* stat
         relative_pos.y = ui.mouse_pos.y - rect.y;
 
         // WidgetComm point_widget = ui.build_widget(rect, WidgetFlag_Clickable | WidgetFlag_HotAnimation);
-        ui.draw_box({mouse_pos.x-8, mouse_pos.y-8, 16, 16}, {255,0,255,255});
+        // ui.draw_box({mouse_pos.x-8, mouse_pos.y-8, 16, 16}, {255,0,255,255});
 
         // printf("ui keymod state %i\n", ui.keyentered);
         // printf("ui mouse right held %i\n", ui.right_mouse_down);
@@ -2642,12 +2689,12 @@ WidgetComm ui_custom_function_widget(charm::Rect rect, CustomFunctionState* stat
         charm::Rect point_hitbox = {projected_point.x-8, projected_point.y-8, 16, 16};
         WidgetComm point_widget = ui.build_widget(point_hitbox, WidgetFlag_Clickable | WidgetFlag_HotAnimation | WidgetFlag_Dragging);
 
-        if(point_widget.hovering)
-        {
-            ui.draw_rect(point_hitbox, {255,0,255,100});
-        } else {
-            ui.draw_rect(point_hitbox, {255,255,255,100});
-        }
+        // if(point_widget.hovering)
+        // {
+        //     ui.draw_rect(point_hitbox, {255,0,255,100});
+        // } else {
+        //     ui.draw_rect(point_hitbox, {255,255,255,100});
+        // }
 
         if (ui.kbditem == point_widget.id)
         {
@@ -2699,7 +2746,7 @@ if(point_widget.dragging)
              ui.draw_line(
                 {projected_point.x, projected_point.y},
                 {next_projected_point.x, next_projected_point.y},
-                {255,255,255,255}
+                {200, 200, 200, 100}
             );
         }
     }
@@ -2750,6 +2797,8 @@ if(point_widget.dragging)
         {playhead_x, rect.y + rect.h},
         {255,0,0,255}
     );
+    // draw evaluated value
+    ui.draw_box({state->playhead_pos * rect.w + 8, state->playhead_function_value * rect.h + rect.y - 8, 16, 16}, {255,0,255,255});
 
     //  calculate playhead value 
 

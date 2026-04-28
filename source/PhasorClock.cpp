@@ -27,7 +27,7 @@ void PhasorClock::update_increment()
 void PhasorClock::resync_from_ppq(double ppq)
 {
     // ppq is in beats, so divide by 4 to get bar phase
-    phase = std::fmod(ppq / osc_time_bars, 1.0);
+    phase = std::fmod(ppq / this->osc_time_bars, 1.0);
 }
 
 void PhasorClock::process()

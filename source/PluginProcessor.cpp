@@ -344,7 +344,7 @@ void CharmAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::M
         double hostBPM = positionInfo.bpm;
         double ppqPosition = positionInfo.ppqPosition;
         app->current_ppq = ppqPosition;
-//        printf("ppq%f\n", app->current_ppq);
+    //    printf("ppq%f\n", app->current_ppq);
         
         // --- Update BPM if changed ---
         if (hostBPM > 0.0 && hostBPM != app->lastKnownBpm)
@@ -353,7 +353,7 @@ void CharmAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::M
             // Calculate outputs
             printf("bpm changed %f\n", hostBPM);
 
-            // // Tell PhasorClock its new rate
+            // Tell PhasorClock its new rate
             //  for (AudioNode* module : app->graph.nodes)
             //  {
             //      if (module->name == "PhasorClock")
@@ -362,6 +362,9 @@ void CharmAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::M
             //          phasor->setBPM(hostBPM, getSampleRate());
             //      }
             //  }
+
+            app->phasor_clock.set_bpm(hostBPM, getSampleRate());
+
             
             // B: Beats per minute for the beat fraction
             // If beat fraction is 0.25 (16th note), and host is 120 BPM,
@@ -383,27 +386,28 @@ void CharmAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::M
             
 //            printf("")
             // Example: Print values for debugging (remove in production)
-            DBG("Beat Fraction: " << beatFraction);
-            DBG("Host BPM: " << hostBPM);
-            DBG("PPQ Position: " << ppqPosition);
-            DBG("B (BPM): " << beatFractionBPM);
-            DBG("Hz: " << noteIntervalHz);
-            DBG("ms: " << noteDurationMs);
+            printf("Beat Fraction: %f\n", beatFraction);
+            printf("Host BPM: %f\n", hostBPM);
+            printf("PPQ Position: %f\n", ppqPosition);
+            printf("B (BPM): %f\n", beatFractionBPM);
+            printf("Hz: %f\n", noteIntervalHz);
+            printf("ms: %f\n", noteDurationMs);
+            // // --- Resync to bar grid (0–1 phasor per bar) ---
+            // for (AudioNode* module : app->graph.nodes)
+            // {
+            //    if (module->name == "PhasorClock")
+            //    {
+                //    auto* phasor = static_cast<PhasorClock*>(module);
+                //    phasor->resyncFromPPQ(ppqPosition);
+            //    }
+            // }
+    
         }
+        // app->phasor_clock.set_bpm(hostBPM, getSampleRate());
+        app->phasor_clock.resync_from_ppq(app->current_ppq);
         
-        // // --- Resync to bar grid (0–1 phasor per bar) ---
-        // for (AudioNode* module : app->graph.nodes)
-        // {
-        //    if (module->name == "PhasorClock")
-        //    {
-            //    auto* phasor = static_cast<PhasorClock*>(module);
-            //    phasor->resyncFromPPQ(ppqPosition);
-        //    }
-        // }
-
-        app->phasor_clock.set_bpm(hostBPM, getSampleRate());
-        app->phasor_clock.resync_from_ppq(ppqPosition);
     }
+
     app->process_audio(outputs, numChannels, numSamples);
 }
 

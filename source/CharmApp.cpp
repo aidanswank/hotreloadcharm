@@ -254,28 +254,134 @@ float CharmApp::moog_filter(float input, float cutoff, float res, float fold, fl
     return s.y4;
 }
 
+struct DelayLine {
+    
+};
+
 void CharmApp::process_audio(float* outputs[], int num_channels, int num_samples)
 {
-    this->custom_function_state.playhead_pos = this->phasor_clock.phase;
-    ui_custom_function_eval(&this->custom_function_state);
-    
-    set_host_parameter_value(knob_1_param_id, 1.0 - this->custom_function_state.playhead_function_value);
+    // set_host_parameter_value(knob_1_param_id, 1.0 - custom_function_value);
 
-    if (this->module_loader.is_loaded())
-    {
+    static constexpr int MAX_DELAY_SAMPLES = 480000; // 10 second at 48kHz
+
+    static float buffer[MAX_DELAY_SAMPLES];
+    static int write_index = 0;
+    static int read_index = 0;
+    static double smoothed_knob_1 = 0.0f;
+    // if (this->module_loader.is_loaded())
+    // {
         // Build context with current parameter values
-        ModuleAudioContext context;
-        context.knob_1 = get_host_parameter_value(knob_1_param_id, 0.5f);
-        // context.knob_1 = this->custom_function_state.playhead_function_value; // override with custom function for demo
-        context.knob_2 = get_host_parameter_value(knob_2_param_id, 0.5f);
-        context.knob_3 = get_host_parameter_value(knob_3_param_id, 0.5f);
-        context.knob_4 = get_host_parameter_value(knob_4_param_id, 0.5f);
-        context.num_channels = num_channels;
-        context.sample_rate = static_cast<int>(sample_rate);
         
-        // Process audio through module
-        this->module_loader.process_audio(outputs, num_channels, num_samples, &context);
-    }
+        for(int i = 0; i < num_samples; ++i)
+        {
+    //         // this->custom_function_state.playhead_pos = this->phasor_clock.phase;
+    //         float custom_function_value = ui_custom_function_eval(&this->custom_function_state);
+
+    //         // set_host_parameter_value(knob_1_param_id, 1.0 - custom_function_value);
+    //         // this->phasor_clock.process();
+
+    //         ModuleAudioContext context;
+    //         context.note_duration_ms = this->note_duration_ms;
+    //         context.beat_fraction_bpm = this->beat_fraction_bpm;
+    //         context.sample_rate = static_cast<int>(this->sample_rate);
+    //         context.num_channels = num_channels;
+    
+    //         // context.knob_1 = get_host_parameter_value(knob_1_param_id, 0.0f);
+    //         context.knob_1 = this->custom_function_state.playhead_function_value; // override with custom function for demo
+    //         context.knob_2 = get_host_parameter_value(knob_2_param_id, 0.0f);
+    //         context.knob_3 = get_host_parameter_value(knob_3_param_id, 0.0f);
+    //         context.knob_4 = get_host_parameter_value(knob_4_param_id, 0.0f);
+
+    //         float left_sample = outputs[0][i];
+    //         float right_sample = outputs[1][i];
+
+    //         buffer[write_index] = left_sample;
+
+    //         // Default to text-input value
+    //         // int effective_delay = delay_samples;
+
+    //         // Override with CV input if connected
+    //         // if (input_connected[TIME_INPUT]) {
+            
+    //         // smoothed_knob_1 = lerp(smoothed_knob_1, context.knob_1, 0.1f); // smooth knob changes for demo
+    //         smoothed_knob_1 = context.knob_1;
+
+    //         float ms = context.note_duration_ms;
+    
+    // // Convert: samples = (milliseconds / 1000) * sample_rate
+    //         float samples = (ms / 1000.0f) * context.sample_rate;
+
+    //         int modulated_delay = static_cast<int>((smoothed_knob_1 * this->phasor_clock.multiplier) * samples); // modulate delay with knob for demo
+    //         int effective_delay = std::clamp(modulated_delay, 0, MAX_DELAY_SAMPLES - 1);
+    //         // }
+
+    //         read_index = write_index - effective_delay;
+    //         if (read_index < 0)
+    //         {
+    //             read_index += MAX_DELAY_SAMPLES;
+    //         }
+
+    //         // outputs[SIGNAL_OUTPUT] = buffer[read_index];
+
+    //         outputs[0][i] = buffer[read_index];
+    //         outputs[1][i] = buffer[read_index];
+
+    //         write_index = (write_index + 1) % MAX_DELAY_SAMPLES;
+
+    //         this->phasor_clock.process();
+
+
+                float custom_function_value = ui_custom_function_eval(&this->custom_function_state);
+
+                ModuleAudioContext context;
+                context.note_duration_ms   = this->note_duration_ms;
+                context.beat_fraction_bpm  = this->beat_fraction_bpm;
+                context.sample_rate        = static_cast<int>(this->sample_rate);
+                context.num_channels       = num_channels;
+                context.knob_1             = this->custom_function_state.playhead_function_value;
+                context.knob_2             = get_host_parameter_value(knob_2_param_id, 0.0f);
+                context.knob_3             = get_host_parameter_value(knob_3_param_id, 0.0f);
+                context.knob_4             = get_host_parameter_value(knob_4_param_id, 0.0f);
+
+                float left_sample  = outputs[0][i];
+                float right_sample = outputs[1][i];
+                buffer[write_index] = left_sample;
+
+                // smoothed_knob_1 = lerp(smoothed_knob_1, context.knob_1, 0.1f); // smooth knob changes for demo
+                smoothed_knob_1 = context.knob_1;
+
+                float ms      = context.note_duration_ms;
+                float samples = (ms / 1000.0f) * context.sample_rate;
+
+                // --- Fractional delay ---
+                float modulated_delay_f = (smoothed_knob_1 * this->phasor_clock.multiplier) * samples;
+                float effective_delay_f = std::clamp(modulated_delay_f, 0.0f, (float)(MAX_DELAY_SAMPLES - 2));
+
+                // Split into integer and fractional parts
+                int   delay_int  = static_cast<int>(effective_delay_f);
+                float frac       = effective_delay_f - static_cast<float>(delay_int);
+
+                // Two adjacent read positions (wrap-around safe)
+                int read_a = write_index - delay_int;
+                if (read_a < 0) read_a += MAX_DELAY_SAMPLES;
+
+                int read_b = read_a - 1;
+                if (read_b < 0) read_b += MAX_DELAY_SAMPLES;
+
+                // Linear interpolation between the two samples
+                float interpolated = buffer[read_a] + frac * (buffer[read_b] - buffer[read_a]);
+
+                outputs[0][i] = interpolated;
+                outputs[1][i] = interpolated;
+
+                write_index = (write_index + 1) % MAX_DELAY_SAMPLES;
+                this->phasor_clock.process();
+
+        }
+
+        // // Process audio through module
+        // this->module_loader.process_audio(outputs, num_channels, num_samples, &context);
+    // }
 }
 
 bool CharmApp::load_plugin(const std::string& dylib_path)

@@ -19,9 +19,11 @@ public:
     double phase           = 0.0; // 0 → 1
     double phase_increment = 0.0;
 
-    float osc_time_bars = 4;
+    float osc_time_bars = 4.0;
 
     float outputs[NUM_OUTPUTS] = {};
+
+    float multiplier = 4.0f;
 
     explicit PhasorClock(double sr = 44100.0);
 

@@ -24,6 +24,8 @@ struct ModuleAudioContext
     // Audio context
     int num_channels = 2;
     int sample_rate = 44100;
+    int note_duration_ms = 500;
+    double beat_fraction_bpm = 120.0;
 };
 
 /**

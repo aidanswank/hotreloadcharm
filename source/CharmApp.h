@@ -77,17 +77,6 @@ public:
     float ui_host_parameter_row(charm::Rect& rect, const char* parameter_id,
                                 float fallback_value = 0.0f, float row_height = 32.0f,
                                 float label_width = 128.0f);
-
-
-    // float hann_window[2048];
-    // void create_hann_window()
-    // {
-    //     for (int i = 0; i < 2048; i++) {
-    //         double multiplier = 0.5 * (1 - cos(2*M_PI*i/2047));
-            
-    //     }
-    // }
-    void manipulate_spectrum(float* signal, int N);
     
     void set_working_file(std::string working_filepath)
     {
