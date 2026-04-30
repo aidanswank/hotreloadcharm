@@ -14,6 +14,7 @@ public:
     // Host sync
     double bpm         = 120.0;
     double sample_rate = 44100.0;
+    double current_ppq = 0.0;
 
     // Internal oscillator
     double phase           = 0.0; // 0 → 1

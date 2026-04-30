@@ -124,7 +124,7 @@ void draw_lissajous(const charm::Rect& rect, const float* audio_data_x, const fl
 // #include <cmath>
 // #include <vector>
 // #include <complex>
-#include <fftw3.h>
+//#include <fftw3.h>
 
 // #include <fftw3.h>
 
@@ -167,6 +167,8 @@ void rc_text_input(RectCut layout, char* buffer, int* cursor_pos);
 bool ui_drag_button(charm::Rect &rect);
 
 #include "PhasorClock.h"
+
+bool rc_label_radio(RectCut layout, std::vector<std::string> options, int* selected);
 
 struct CustomFunctionState
 {

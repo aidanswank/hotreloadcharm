@@ -344,6 +344,7 @@ void CharmAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::M
         double hostBPM = positionInfo.bpm;
         double ppqPosition = positionInfo.ppqPosition;
         app->current_ppq = ppqPosition;
+        app->phasor_clock.current_ppq = ppqPosition;
     //    printf("ppq%f\n", app->current_ppq);
         
         // --- Update BPM if changed ---

@@ -553,6 +553,23 @@ WidgetComm ui_button_rect_impl(charm::Rect rect)
     return widget;
 }
 
+WidgetComm ui_invisible_button_rect_impl(charm::Rect rect)
+{
+    UICore& ui = *get_ui_state();
+    WidgetComm widget = ui.build_widget(rect, WidgetFlag_Clickable | WidgetFlag_HotAnimation);
+    
+//    ui.draw_rect(rect, theme.button_color);
+//    ui.draw_box(rect, theme.border_color);
+    
+    if(widget.hovering)
+    {
+        ui.draw_rect(rect, theme.hot_color);
+    }
+
+    return widget;
+}
+
+
 bool ui_button_rect(charm::Rect rect)
 {
     return ui_button_rect_impl(rect).clicked;
@@ -1600,7 +1617,7 @@ void draw_lissajous(const charm::Rect& rect, const float* audio_data_x, const fl
 #include <cmath>
 #include <vector>
 #include <complex>
-#include <fftw3.h>
+//#include <fftw3.h>
 
 // void compute_fft_magnitude(const float* input, float* output, size_t sample_count) {
 //     if ((sample_count & (sample_count - 1)) != 0) {
@@ -2518,6 +2535,50 @@ float ui_custom_function_eval(CustomFunctionState* state)
     return state->playhead_function_value;
 }
 
+// bool ui_combo_rect(charm::Rect *rect, std::vector<std::string> options, int* selected, bool& opened)
+// bool rc_button(RectCut layout, const char* label)
+bool rc_label_radio(RectCut layout, std::vector<std::string> options, int* selected)
+{
+    bool clicked = false;
+    
+    UICore& ui = *get_ui_state();
+    
+    float start_x = layout.rect->x;
+    float total_width = 0.0f;
+    float row_y = layout.rect->y;
+    float row_h = layout.rect->h;
+    
+    for(int i = 0; i < options.size(); i++)
+    {
+        const char* label = options[i].c_str();
+        float size = ui.get_text_width(label) + (theme.padding*2);
+        float text_height = ui.get_text_height(label);
+        charm::Rect rect = rectcut_cut(layout, size);
+        total_width += size;
+        
+        if(*selected == i)
+        {
+            ui.draw_rect(rect, theme.button_color);
+        }
+        
+        if(ui_invisible_button_rect_impl(rect).clicked)
+        {
+            *selected = i;
+            clicked = true;
+        }
+        
+        ui.draw_string(label, {rect.x + theme.padding, rect.y + int(rect.h/2) - int(text_height/2)}, theme.text_color);
+    }
+    
+    charm::Rect border_rect = { start_x, row_y, total_width, row_h };
+    ui.draw_box(border_rect, theme.border_color);
+    
+    return clicked;
+}
+
+#include <iostream>
+#include <string>
+
 WidgetComm ui_custom_function_widget(charm::Rect rect, CustomFunctionState* state)
 {
     UICore& ui = *get_ui_state();
@@ -2547,71 +2608,93 @@ WidgetComm ui_custom_function_widget(charm::Rect rect, CustomFunctionState* stat
     charm::Rect toggle_box = cut_left(&new_line, 32);
     ui_checkbox_rect(toggle_box, &state->snap_to_grid);
 
-    rc_label(rectcut(&new_line, RectCut_Left), "Playhead Pos: %f", state->playhead_pos);
-    rc_label(rectcut(&new_line, RectCut_Left), "Function Value: %f", state->playhead_function_value);
+//    rc_label(rectcut(&new_line, RectCut_Left), "Playhead Pos: %f", state->playhead_pos);
+//    rc_label(rectcut(&new_line, RectCut_Left), "Function Value: %f", state->playhead_function_value);
     rc_label(rectcut(&new_line, RectCut_Left), "Num Points: %i", state->points.size());
 
     new_line = cut_top(&rect, 32);
     rc_label(rectcut(&new_line, RectCut_Left), "X");
-    if(rc_button(rectcut(&new_line, RectCut_Left), "2"))
-        state->num_grid_lines.x = 2;
-    if(rc_button(rectcut(&new_line, RectCut_Left), "4"))
-        state->num_grid_lines.x = 4;
-    if(rc_button(rectcut(&new_line, RectCut_Left), "8"))
-        state->num_grid_lines.x = 8;
-    if(rc_button(rectcut(&new_line, RectCut_Left), "16"))
-        state->num_grid_lines.x = 16;
+    
+    // used for both
+    static std::vector<std::string> grid_bars_options_str = {"2", "4", "8", "16"};
+    static int x_bars_options_selected_idx = 0;
+    if(rc_label_radio(rectcut(&new_line, RectCut_Left), grid_bars_options_str, &x_bars_options_selected_idx))
+    {
+        int str_to_int = std::stoi(grid_bars_options_str[x_bars_options_selected_idx].c_str());
+
+        printf("actual val %i\n", str_to_int);
+        state->num_grid_lines.x = str_to_int;
+    }
 
     rc_label(rectcut(&new_line, RectCut_Left), "Y");
-    if(rc_button(rectcut(&new_line, RectCut_Left), "2"))
-        state->num_grid_lines.y = 2;
-    if(rc_button(rectcut(&new_line, RectCut_Left), "4"))
-        state->num_grid_lines.y = 4;
-    if(rc_button(rectcut(&new_line, RectCut_Left), "8"))
-        state->num_grid_lines.y = 8;
-    if(rc_button(rectcut(&new_line, RectCut_Left), "16"))
-        state->num_grid_lines.y = 16;
+    static int y_bars_options_selected_idx = 0;
+    if(rc_label_radio(rectcut(&new_line, RectCut_Left), grid_bars_options_str, &y_bars_options_selected_idx))
+    {
+        int str_to_int = std::stoi(grid_bars_options_str[y_bars_options_selected_idx].c_str());
+
+        printf("actual val %i\n", str_to_int);
+        state->num_grid_lines.y = str_to_int;
+    }
 
     // new_line = cut_top(&rect, 32);
 
-    rc_label(rectcut(&new_line, RectCut_Left), "Bars");
-    if(rc_button(rectcut(&new_line, RectCut_Left), "1/3"))
-    state->phasor_clock->osc_time_bars = 1.0 / 3.0;
-    if(rc_button(rectcut(&new_line, RectCut_Left), "1/2"))
-        state->phasor_clock->osc_time_bars = 0.5;
-    if(rc_button(rectcut(&new_line, RectCut_Left), "1"))
-        state->phasor_clock->osc_time_bars = 1;
-    if(rc_button(rectcut(&new_line, RectCut_Left), "1.5"))
-        state->phasor_clock->osc_time_bars = 1.5;
-    if(rc_button(rectcut(&new_line, RectCut_Left), "2"))
-        state->phasor_clock->osc_time_bars = 2;
-    if(rc_button(rectcut(&new_line, RectCut_Left), "3"))
-        state->phasor_clock->osc_time_bars = 3;
-    if(rc_button(rectcut(&new_line, RectCut_Left), "4"))
-        state->phasor_clock->osc_time_bars = 4;
-    if(rc_button(rectcut(&new_line, RectCut_Left), "8"))
-        state->phasor_clock->osc_time_bars = 8;
+//    rc_label(rectcut(&new_line, RectCut_Left), "Bars");
+//    // if(rc_button(rectcut(&new_line, RectCut_Left), "1/3"))
+//    //     state->phasor_clock->osc_time_bars = 1.0 / 3.0;
+//    // if(rc_button(rectcut(&new_line, RectCut_Left), "1/2"))
+//    //     state->phasor_clock->osc_time_bars = 0.5;
+//    // if(rc_button(rectcut(&new_line, RectCut_Left), "1"))
+//    //     state->phasor_clock->osc_time_bars = 1;
+//    // if(rc_button(rectcut(&new_line, RectCut_Left), "1.5"))
+//    //     state->phasor_clock->osc_time_bars = 1.5;
+//    if(rc_button(rectcut(&new_line, RectCut_Left), "2"))
+//    {
+//        state->phasor_clock->osc_time_bars = 2;
+//        state->phasor_clock->resync_from_ppq(state->phasor_clock->current_ppq);
+//    }
+//    // if(rc_button(rectcut(&new_line, RectCut_Left), "3"))
+//    //     state->phasor_clock->osc_time_bars = 3;
+//    if(rc_button(rectcut(&new_line, RectCut_Left), "4"))
+//    {
+//        state->phasor_clock->osc_time_bars = 4;
+//        state->phasor_clock->resync_from_ppq(state->phasor_clock->current_ppq);
+//    }
+//    if(rc_button(rectcut(&new_line, RectCut_Left), "8"))
+//    {
+//        state->phasor_clock->osc_time_bars = 8;
+//        state->phasor_clock->resync_from_ppq(state->phasor_clock->current_ppq);
+//    }
+
+//    rc_label(rectcut(&new_line, RectCut_Left), "Multiplier");
+//    // if(rc_button(rectcut(&new_line, RectCut_Left), "1/2"))
+//    //     state->phasor_clock->multiplier = 0.5;
+//    // if(rc_button(rectcut(&new_line, RectCut_Left), "1/3"))
+//    //     state->phasor_clock->multiplier = 1.0 / 3.0;
+//    if(rc_button(rectcut(&new_line, RectCut_Left), "1"))
+//        state->phasor_clock->multiplier = 1;
+//    // if(rc_button(rectcut(&new_line, RectCut_Left), "1.5"))
+//    //     state->phasor_clock->multiplier = 1.5;
+//    if(rc_button(rectcut(&new_line, RectCut_Left), "2"))
+//        state->phasor_clock->multiplier = 2;
+//    if(rc_button(rectcut(&new_line, RectCut_Left), "3"))
+//        state->phasor_clock->multiplier = 3;
+//    if(rc_button(rectcut(&new_line, RectCut_Left), "4"))
+//        state->phasor_clock->multiplier = 4;
+//    if(rc_button(rectcut(&new_line, RectCut_Left), "8"))
+//        state->phasor_clock->multiplier = 8;
+//    if(rc_button(rectcut(&new_line, RectCut_Left), "16"))
+//        state->phasor_clock->multiplier = 16;
+        
+    static std::vector<std::string> multiplier_options_str = {"1", "2", "3", "4", "8", "16"};
+    static float multiplier_values[] = {1.0f, 2.0f, 3.0f, 4.0f, 8.0f, 16.0f};
+    static int multiplier_selected_idx = 4;
 
     rc_label(rectcut(&new_line, RectCut_Left), "Multiplier");
-    // if(rc_button(rectcut(&new_line, RectCut_Left), "1/2"))
-    //     state->phasor_clock->multiplier = 0.5;
-    // if(rc_button(rectcut(&new_line, RectCut_Left), "1/3"))
-    //     state->phasor_clock->multiplier = 1.0 / 3.0;
-    if(rc_button(rectcut(&new_line, RectCut_Left), "1"))
-        state->phasor_clock->multiplier = 1;
-    // if(rc_button(rectcut(&new_line, RectCut_Left), "1.5"))
-    //     state->phasor_clock->multiplier = 1.5;
-    if(rc_button(rectcut(&new_line, RectCut_Left), "2"))
-        state->phasor_clock->multiplier = 2;
-    if(rc_button(rectcut(&new_line, RectCut_Left), "3"))
-        state->phasor_clock->multiplier = 3;
-    if(rc_button(rectcut(&new_line, RectCut_Left), "4"))
-        state->phasor_clock->multiplier = 4;
-    if(rc_button(rectcut(&new_line, RectCut_Left), "8"))
-        state->phasor_clock->multiplier = 8;
-    if(rc_button(rectcut(&new_line, RectCut_Left), "16"))
-        state->phasor_clock->multiplier = 16;
-        
+    if(rc_label_radio(rectcut(&new_line, RectCut_Left), multiplier_options_str, &multiplier_selected_idx))
+    {
+        state->phasor_clock->multiplier = multiplier_values[multiplier_selected_idx];
+    }
+    
     // charm::Rect side_bar_widget_rect = cut_left(&rect, 32);
     // ui.draw_box(side_bar_widget_rect, {255,0,255,255});
     // rc_label(rectcut(&side_bar_widget_rect, RectCut_Left), "Grid Y");

@@ -22,7 +22,7 @@ typedef const char* (*ClipboardGetFunc)(void* ctx);
 #include <complex>
 #include <string>
 #include <unordered_map>
-#include <fftw3.h>
+//#include <fftw3.h>
 #include <math.h>
 
 namespace juce {
